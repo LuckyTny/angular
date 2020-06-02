@@ -10,6 +10,8 @@ import * as ast from '../../../../expression_parser/ast';
 import * as o from '../../../../output/output_ast';
 import {InterpolationExpr} from '../features/binding/interpolation';
 import {UnresolvedExpr} from '../features/expressions';
+import {PipeBindExpr} from '../features/pipes/expression';
+import * as ir from '../ir';
 
 export enum ReadResultKind {
   Receiver,
@@ -23,6 +25,8 @@ export interface ReadResult {
 export interface Context {}
 
 export class ValuePreprocessor implements ast.AstVisitor {
+  constructor(private scope: {allocateId(): ir.Id}) {}
+
   process(value: ast.AST): o.Expression {
     return value.visit(this);
   }
@@ -91,8 +95,10 @@ export class ValuePreprocessor implements ast.AstVisitor {
       return new o.InvokeMethodExpr(node.receiver.visit(this), node.name, args);
     }
   }
-  visitPipe(node: ast.BindingPipe) {
-    throw new Error('Method not implemented.');
+  visitPipe(node: ast.BindingPipe): o.Expression {
+    return new PipeBindExpr(
+        this.scope.allocateId(), node.name, node.exp.visit(this),
+        node.args.map(arg => arg.visit(this)));
   }
   visitPrefixNot(node: ast.PrefixNot) {
     throw new Error('Method not implemented.');
